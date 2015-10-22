@@ -1,0 +1,15 @@
+{
+  "name": "cgalvarez-wordpress",
+  "version": "1.0.0",
+  "author": "Carlos García Álvarez",
+  "summary": "Puppet WordPress module",
+  "license": "Apache-2.0",
+  "source": "https://github.com/cgalvarez/puppet-wordpress",
+  "project_page": "https://github.com/cgalvarez/puppet-wordpress",
+  "issues_url": "https://github.com/cgalvarez/puppet-wordpress/issues",
+  "dependencies": [
+    {"name":"puppetlabs/concat","version_requirement":">= 1.0.0"},
+    {"name":"puppetlabs/mysql","version_requirement":">= 2.1.0"},
+    {"name":"puppetlabs/stdlib","version_requirement":">= 2.3.1"}
+  ]
+}
