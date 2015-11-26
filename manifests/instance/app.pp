@@ -49,13 +49,16 @@ define wordpress::instance::app (
   }
   Exec {
     path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
-    cwd       => $install_dir,
     logoutput => 'on_failure',
   }
 
   ## Installation directory
   if ! defined(File[$install_dir]) {
-    file { $install_dir:
+    exec { "Create install dir ${install_dir}":
+      command => "mkdir -p  ${install_dir}",
+      unless  => "test -d ${install_dir}",
+    }
+    -> file { $install_dir:
       ensure  => directory,
       recurse => true,
     }
@@ -64,24 +67,36 @@ define wordpress::instance::app (
   }
 
   ## Download and extract
-  exec { "Download wordpress ${install_url}/wordpress-${version}.tar.gz to ${install_dir}":
-    command => "wget ${install_url}/wordpress-${version}.tar.gz",
-    creates => "${install_dir}/wordpress-${version}.tar.gz",
+  $filename = $version ? {
+    undef   => 'latest',
+    default => "wordpress-${version}",
+  }
+  
+  exec { "Download wordpress ${install_url}/${filename}.tar.gz to ${install_dir}":
+    command => "wget ${install_url}/${filename}.tar.gz",
+    creates => "${install_dir}/${filename}.tar.gz",
     require => File[$install_dir],
     user    => $wp_owner,
     group   => $wp_group,
+    cwd     => $install_dir,
   }
   -> exec { "Extract wordpress ${install_dir}":
-    command => "tar zxvf ./wordpress-${version}.tar.gz --strip-components=1",
+    command => "tar zxvf ./${filename}.tar.gz --strip-components=1",
     creates => "${install_dir}/index.php",
     user    => $wp_owner,
     group   => $wp_group,
+    cwd     => $install_dir,
+  }
+  -> exec { "Remove tarball ${install_dir}/${filename}.tar.gz":
+    command => "rm -f ${install_dir}/${filename}.tar.gz",
+    onlyif  => "test -f ${install_dir}/${filename}.tar.gz",
   }
   ~> exec { "Change ownership ${install_dir}":
     command     => "chown -R ${wp_owner}:${wp_group} ${install_dir}",
     refreshonly => true,
     user        => $wp_owner,
     group       => $wp_group,
+    cwd     => $install_dir,
   }
 
   ## Configure wordpress
@@ -133,5 +148,20 @@ define wordpress::instance::app (
       content => template('wordpress/wp-config.php.erb'),
       order   => '20',
     }
+  }
+
+  # Secure WordPress installation
+  exec { "Set ownership for ${install_dir}":
+    command => "/usr/bin/chown ${wp_owner}:${wp_group} ${install_dir} -R",
+    unless  => "/usr/bin/stat -c '%U:%G' '${install_dir}' | grep '${wp_owner}:${wp_group}'",
+    require => Concat["${install_dir}/wp-config.php"],
+  }
+  -> exec { "Set folder access rights for ${install_dir}":
+    command => "/usr/bin/find ${install_dir} -type d -exec chmod 755 {} \\;",
+    unless  => "/usr/bin/stat -c '%a' '${install_dir}' | grep '755'",
+  }
+  -> exec { "Set files access rights for ${install_dir}":
+    command => "/usr/bin/find ${install_dir} -type f -exec chmod 644 {} \\;",
+    unless  => "/usr/bin/stat -c '%a' '${install_dir}/index.php' | grep '644'",
   }
 }
