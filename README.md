@@ -1,4 +1,4 @@
-Puppet WodrPress module
+Puppet WordPress module
 =======================
 
 This module is a fork of [hunner/puppet-wordpress](https://github.com/hunner/puppet-wordpress) by Carlos García Álvarez.
