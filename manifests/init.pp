@@ -107,12 +107,13 @@ class wordpress (
   #$wp_debug_display     = false,
 
   ### START Hiera Lookups ###
-  $wp_instances          = {},
-  $wp_instances_defaults = {},
+  $instances          = {},
+  $instances_defaults = {},
   ### END Hiera Lookups ###
 ) inherits ::wordpress::params {
-  create_resources('wordpress::instance', $wp_instances,
-    merge($wordpress::params::_instance_defaults, $wp_instances_defaults)
+
+  create_resources('wordpress::instance', $instances,
+    merge($wordpress::params::_instance_defaults, $instances_defaults)
   )
   #wordpress::instance { $install_dir:
   #  install_dir          => $install_dir,

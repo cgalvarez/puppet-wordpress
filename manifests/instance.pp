@@ -94,7 +94,16 @@ define wordpress::instance (
   $wp_debug             = false,
   $wp_debug_log         = false,
   $wp_debug_display     = false,
+  $wp_plugins           = {},
+  $wp_themes            = {},
 ) {
+
+  # Resource defaults
+  Exec {
+    path      => ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin'],
+    logoutput => 'on_failure',
+  }
+
   wordpress::instance::app { $install_dir:
     install_dir          => $install_dir,
     install_url          => $install_url,
@@ -127,4 +136,85 @@ define wordpress::instance (
     db_user        => $db_user,
     db_password    => $db_password,
   }
+
+  if !empty($wp_plugins) {
+    if !tagged(wordpress::wpcli) {
+      include wordpress::wpcli
+    }
+    $wp_plugins.each |String $slug, Hash $params| {
+      wordpress::wpcli::plugin { "${title} > plugin ${slug}":
+        slug      => $slug,
+        path      => $install_dir,
+        owner     => $wp_owner,
+        group     => $wp_group,
+        before    => Exec["Set ownership for ${install_dir}"],
+        require   => [
+          Class['wordpress::wpcli'],
+          Wordpress::Instance::App[$install_dir],
+        ],
+        install   => $params['install'] ? {
+          undef   => true,
+          default => $params['install'],
+        },
+        activate  => $params['activate'] ? {
+          undef   => true,
+          default => $params['activate'],
+        },
+        delete    => $params['delete'] ? {
+          undef   => undef,
+          default => $params['delete'],
+        },
+      }
+    }
+  }
+
+  if !empty($wp_themes) {
+    if !tagged(wordpress::wpcli) {
+      include wordpress::wpcli
+    }
+    $wp_themes.each |String $slug, Hash $params| {
+      wordpress::wpcli::theme { "${title} > theme ${slug}":
+        slug      => $slug,
+        path      => $install_dir,
+        owner     => $wp_owner,
+        group     => $wp_group,
+        before    => Exec["Set ownership for ${install_dir}"],
+        require   => [
+          Class['wordpress::wpcli'],
+          Wordpress::Instance::App[$install_dir],
+        ],
+        install   => $params['install'] ? {
+          undef   => true,
+          default => $params['install'],
+        },
+        activate  => $params['activate'] ? {
+          undef   => true,
+          default => $params['activate'],
+        },
+        delete    => $params['delete'] ? {
+          undef   => undef,
+          default => $params['delete'],
+        },
+      }
+    }
+  }
+
+  # Secure WordPress installation
+  exec { "Set ownership for ${install_dir}":
+    command => "chown ${wp_owner}:${wp_group} ${install_dir} -R",
+    unless  => "stat -c '%U:%G' '${install_dir}' | grep '${wp_owner}:${wp_group}'",
+    require => [
+      Wordpress::Instance::App[$install_dir],
+      Wordpress::Instance::Db["${db_host}/${db_name}"],
+    ]
+  }
+  -> exec { "Set folder access rights for ${install_dir}":
+    command => "find ${install_dir} -type d -exec chmod 755 {} \\;",
+    unless  => "stat -c '%a' '${install_dir}' | grep '755'",
+  }
+  -> exec { "Set files access rights for ${install_dir}":
+    command => "find ${install_dir} -type f -exec chmod 644 {} \\;",
+    unless  => "stat -c '%a' '${install_dir}/index.php' | grep '644'",
+  }
+
 }

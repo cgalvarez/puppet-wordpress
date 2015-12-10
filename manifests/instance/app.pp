@@ -48,7 +48,7 @@ define wordpress::instance::app (
     mode   => '0644',
   }
   Exec {
-    path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
+    path      => ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin'],
     logoutput => 'on_failure',
   }
 
@@ -96,7 +96,7 @@ define wordpress::instance::app (
     refreshonly => true,
     user        => $wp_owner,
     group       => $wp_group,
-    cwd     => $install_dir,
+    cwd         => $install_dir,
   }
 
   ## Configure wordpress
@@ -148,20 +148,5 @@ define wordpress::instance::app (
       content => template('wordpress/wp-config.php.erb'),
       order   => '20',
     }
-  }
-
-  # Secure WordPress installation
-  exec { "Set ownership for ${install_dir}":
-    command => "/usr/bin/chown ${wp_owner}:${wp_group} ${install_dir} -R",
-    unless  => "/usr/bin/stat -c '%U:%G' '${install_dir}' | grep '${wp_owner}:${wp_group}'",
-    require => Concat["${install_dir}/wp-config.php"],
-  }
-  -> exec { "Set folder access rights for ${install_dir}":
-    command => "/usr/bin/find ${install_dir} -type d -exec chmod 755 {} \\;",
-    unless  => "/usr/bin/stat -c '%a' '${install_dir}' | grep '755'",
-  }
-  -> exec { "Set files access rights for ${install_dir}":
-    command => "/usr/bin/find ${install_dir} -type f -exec chmod 644 {} \\;",
-    unless  => "/usr/bin/stat -c '%a' '${install_dir}/index.php' | grep '644'",
   }
 }
