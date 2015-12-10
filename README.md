@@ -15,4 +15,4 @@ Copyright
 
 Copyright (C) 2015 [Carlos García Álvarez](http://carlosgarcia.engineer/)
 
-Copyright (C) 2015 Hunter Haugen [Initial fork from [hunner/puppet-wordpress](https://github.com/hunner/puppet-wordpress) v1.0.0
+Copyright (C) 2015 Hunter Haugen (Initial fork from [hunner/puppet-wordpress](https://github.com/hunner/puppet-wordpress) v1.0.0)
