@@ -114,11 +114,17 @@ define wordpress::wpcli::theme (
       exec { $exec_title:
         command => "wp theme ${action} --path=${path}",
         unless  => "wp theme is-installed ${slug}",
+        user    => $owner,
+        group   => $group,
+        before  => Exec["Set ownership for ${path}"],
       }
     } else {
       exec { $exec_title:
         command => "wp theme ${action} --path=${path}",
         onlyif  => "wp theme is-installed ${slug}",
+        user    => $owner,
+        group   => $group,
+        before  => Exec["Set ownership for ${path}"],
       }
     }
   }

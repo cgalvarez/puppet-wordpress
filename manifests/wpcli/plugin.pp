@@ -114,11 +114,17 @@ define wordpress::wpcli::plugin (
       exec { $exec_title:
         command => "wp plugin ${action} --path=${path}",
         unless  => "wp plugin is-installed ${slug}",
+        user    => $owner,
+        group   => $group,
+        before  => Exec["Set ownership for ${path}"],
       }
     } else {
       exec { $exec_title:
         command => "wp plugin ${action} --path=${path}",
         onlyif  => "wp plugin is-installed ${slug}",
+        user    => $owner,
+        group   => $group,
+        before  => Exec["Set ownership for ${path}"],
       }
     }
   }
