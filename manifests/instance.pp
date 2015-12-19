@@ -164,6 +164,7 @@ define wordpress::instance (
           undef   => undef,
           default => $params['delete'],
         },
+        notify    => Exec["Set ownership for ${install_dir}"],
       }
     }
   }
@@ -195,26 +196,47 @@ define wordpress::instance (
           undef   => undef,
           default => $params['delete'],
         },
+        notify    => Exec["Set ownership for ${install_dir}"],
       }
     }
   }
 
-  # Secure WordPress installation
+  # Secure WordPress installation (but exclude internal folders)
+  # For excludes see: http://stackoverflow.com/questions/4210042/exclude-directory-from-find-command/
+  $excludes = sprintf('-not \( -path %s -prune \)', join($::wordpress::params::excludes, ' -prune \) -not \( -path '))
   exec { "Set ownership for ${install_dir}":
-    command => "chown ${wp_owner}:${wp_group} ${install_dir} -R",
-    unless  => "stat -c '%U:%G' '${install_dir}' | grep '${wp_owner}:${wp_group}'",
-    require => [
+    cwd         => $install_dir,
+    command     => "find . ${excludes} -exec chown ${wp_owner}:${wp_group} {} \\;",
+    refreshonly => true,
+    require     => [
       Wordpress::Instance::App[$install_dir],
       Wordpress::Instance::Db["${db_host}/${db_name}"],
-    ]
+      Wordpress::Wpcli::Theme[prefix(keys($wp_themes), "${title} > theme ")],
+      Wordpress::Wpcli::Plugin[prefix(keys($wp_plugins), "${title} > plugin ")],
+    ],
+    notify      => [
+      Exec["Set folder access rights for ${install_dir}"],
+      Exec["Set files access rights for ${install_dir}"],
+      Exec["Prevent other users from reading ${install_dir}/wp-config.php"],
+    ],
   }
   -> exec { "Set folder access rights for ${install_dir}":
-    command => "find ${install_dir} -type d -exec chmod 755 {} \\;",
-    unless  => "stat -c '%a' '${install_dir}' | grep '755'",
+    cwd         => $install_dir,
+    command     => "find . ${excludes} -type d -exec chmod 755 {} \\;",
+    refreshonly => true,
   }
   -> exec { "Set files access rights for ${install_dir}":
-    command => "find ${install_dir} -type f -exec chmod 644 {} \\;",
-    unless  => "stat -c '%a' '${install_dir}/index.php' | grep '644'",
+    cwd         => $install_dir,
+    command     => "find . ${excludes} -type f -exec chmod 644 {} \\;",
+    refreshonly => true,
+  }
+  # Permissions for wp-config.php should ideally be 600, but
+  # maybe the owner and the webserver/php users aren't the same
+  # Read: https://wordpress.org/support/topic/what-permission-do-you-suggest-for-wp-config
+  -> exec { "Prevent other users from reading ${install_dir}/wp-config.php":
+    cwd         => $install_dir,
+    command     => "chmod 640 wp-config.php",
+    refreshonly => true,
   }
 
 }

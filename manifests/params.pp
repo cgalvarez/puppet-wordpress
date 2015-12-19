@@ -35,6 +35,12 @@ class wordpress::params {
     }
   }
   $_instance_defaults = merge($_module_defaults, $_module_os_overrides)
+  $excludes = [
+      '.git',
+      'bower_components',
+      'node_modules',
+      'vendor',
+    ]
 
   ### Referenced Variables
   $install_dir          = $_instance_defaults['install_dir']

@@ -52,33 +52,34 @@ define wordpress::instance::app (
     logoutput => 'on_failure',
   }
 
-  ## Installation directory
-  if ! defined(File[$install_dir]) {
-    exec { "Create install dir ${install_dir}":
-      command => "mkdir -p  ${install_dir}",
-      unless  => "test -d ${install_dir}",
-    }
-    -> file { $install_dir:
-      ensure  => directory,
-      recurse => true,
-    }
-  } else {
-    notice("Warning: cannot manage the permissions of ${install_dir}, as another resource (perhaps apache::vhost?) is managing it.")
-  }
-
-  ## Download and extract
   $filename = $version ? {
     undef   => 'latest',
     default => "wordpress-${version}",
   }
-  
+
+  ## Installation directory
+  exec { "Create install dir ${install_dir}":
+    command => "mkdir -p ${install_dir}",
+    unless  => "test -d ${install_dir}",
+    before  => Exec["Download wordpress ${install_url}/${filename}.tar.gz to ${install_dir}"],
+  }
+
+  ## Download and extract
+  $notify = $filename ? {
+    'latest' => [
+      Exec["Set ownership for ${install_dir}"],
+      Exec["Remove tarball ${install_dir}/${filename}.tar.gz"],
+    ],
+    default  => Exec["Set ownership for ${install_dir}"],
+  }
   exec { "Download wordpress ${install_url}/${filename}.tar.gz to ${install_dir}":
     command => "wget ${install_url}/${filename}.tar.gz",
     creates => "${install_dir}/${filename}.tar.gz",
-    require => File[$install_dir],
+    require => Exec["Create install dir ${install_dir}"],
     user    => $wp_owner,
     group   => $wp_group,
     cwd     => $install_dir,
+    notify  => $notify,
   }
   -> exec { "Extract wordpress ${install_dir}":
     command => "tar zxvf ./${filename}.tar.gz --strip-components=1",
@@ -87,16 +88,10 @@ define wordpress::instance::app (
     group   => $wp_group,
     cwd     => $install_dir,
   }
-  -> exec { "Remove tarball ${install_dir}/${filename}.tar.gz":
-    command => "rm -f ${install_dir}/${filename}.tar.gz",
-    onlyif  => "test -f ${install_dir}/${filename}.tar.gz",
-  }
-  ~> exec { "Change ownership ${install_dir}":
-    command     => "chown -R ${wp_owner}:${wp_group} ${install_dir}",
+  exec { "Remove tarball ${install_dir}/${filename}.tar.gz":
+    command     => "rm -f ${install_dir}/${filename}.tar.gz",
+    onlyif      => "test -f ${install_dir}/${filename}.tar.gz",
     refreshonly => true,
-    user        => $wp_owner,
-    group       => $wp_group,
-    cwd         => $install_dir,
   }
 
   ## Configure wordpress
@@ -104,7 +99,6 @@ define wordpress::instance::app (
   concat { "${install_dir}/wp-config.php":
     owner   => $wp_owner,
     group   => $wp_group,
-    mode    => '0755',
     require => Exec["Extract wordpress ${install_dir}"],
   }
   if $wp_config_content {
