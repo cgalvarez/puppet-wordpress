@@ -113,7 +113,7 @@ define wordpress::wpcli::theme (
     if $install == true {
       exec { $exec_title:
         command => "wp theme ${action} --path=${path}",
-        unless  => "wp theme is-installed ${slug}",
+        unless  => "wp theme is-installed ${slug} --path=${path}",
         user    => $owner,
         group   => $group,
         before  => Exec["Set ownership for ${path}"],
@@ -121,7 +121,7 @@ define wordpress::wpcli::theme (
     } else {
       exec { $exec_title:
         command => "wp theme ${action} --path=${path}",
-        onlyif  => "wp theme is-installed ${slug}",
+        onlyif  => "wp theme is-installed ${slug} --path=${path}",
         user    => $owner,
         group   => $group,
         before  => Exec["Set ownership for ${path}"],
