@@ -114,12 +114,14 @@ define wordpress::addon::git (
   if !defined(Exec["${host[1]} to ${root} known_hosts"]) {
     exec { "${host[1]} to ${root} known_hosts":
       command => "ssh -T ${host[0]} -o StrictHostKeyChecking=no; echo success",
+      cwd     => $path,
       user    => $root,
       group   => $root,
       unless  => "ssh-keygen -H -F ${host[1]}",
     }
     exec { "${host[1]} to ${owner} known_hosts":
       command => "ssh -T ${host[0]} -o StrictHostKeyChecking=no; echo success",
+      cwd     => $path,
       user    => $owner,
       group   => $group,
       unless  => "ssh-keygen -H -F ${host[1]}",
