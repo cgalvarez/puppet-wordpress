@@ -14,7 +14,7 @@
 #
 # This class file is not called directly
 class wordpress::wpcli(
-  $ensure    = 'present',
+  $ensure = 'present',
 ) {
 
   validate_string($ensure)

@@ -82,62 +82,11 @@
 # === Examples
 #
 class wordpress (
-  #$install_dir          = '/opt/wordpress',
-  #$install_url          = 'http://wordpress.org',
-  #$version              = '3.8',
-  #$create_db            = true,
-  #$create_db_user       = true,
-  #$db_name              = 'wordpress',
-  #$db_host              = 'localhost',
-  #$db_user              = 'wordpress',
-  #$db_password          = 'password',
-  #$wp_owner             = 'root',
-  #$wp_group             = '0',
-  #$wp_lang              = '',
-  #$wp_config_content    = undef,
-  #$wp_plugin_dir        = 'DEFAULT',
-  #$wp_additional_config = 'DEFAULT',
-  #$wp_table_prefix      = 'wp_',
-  #$wp_proxy_host        = '',
-  #$wp_proxy_port        = '',
-  #$wp_multisite         = false,
-  #$wp_site_domain       = '',
-  #$wp_debug             = false,
-  #$wp_debug_log         = false,
-  #$wp_debug_display     = false,
-
-  ### START Hiera Lookups ###
   $instances          = {},
   $instances_defaults = {},
-  ### END Hiera Lookups ###
 ) inherits ::wordpress::params {
 
   create_resources('wordpress::instance', $instances,
     merge($wordpress::params::_instance_defaults, $instances_defaults)
   )
-  #wordpress::instance { $install_dir:
-  #  install_dir          => $install_dir,
-  #  install_url          => $install_url,
-  #  version              => $version,
-  #  create_db            => $create_db,
-  #  create_db_user       => $create_db_user,
-  #  db_name              => $db_name,
-  #  db_host              => $db_host,
-  #  db_user              => $db_user,
-  #  db_password          => $db_password,
-  #  wp_owner             => $wp_owner,
-  #  wp_group             => $wp_group,
-  #  wp_lang              => $wp_lang,
-  #  wp_config_content    => $wp_config_content,
-  #  wp_plugin_dir        => $wp_plugin_dir,
-  #  wp_additional_config => $wp_additional_config,
-  #  wp_table_prefix      => $wp_table_prefix,
-  #  wp_proxy_host        => $wp_proxy_host,
-  #  wp_proxy_port        => $wp_proxy_port,
-  #  wp_multisite         => $wp_multisite,
-  #  wp_site_domain       => $wp_site_domain,
-  #  wp_debug             => $wp_debug,
-  #  wp_debug_log         => $wp_debug_log,
-  #  wp_debug_display     => $wp_debug_display,
-  #}
 }

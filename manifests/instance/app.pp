@@ -20,12 +20,26 @@ define wordpress::instance::app (
   $wp_debug,
   $wp_debug_log,
   $wp_debug_display,
+  $install_data_url             = undef,
+  $install_data_title           = undef,
+  $install_data_admin_user      = undef,
+  $install_data_admin_password  = undef,
+  $install_data_admin_email     = undef,
 ) {
-  validate_string($install_dir,$install_url,$version,$db_name,$db_host,$db_user,$db_password,$wp_owner,$wp_group, $wp_lang, $wp_plugin_dir,$wp_additional_config,$wp_table_prefix,$wp_proxy_host,$wp_proxy_port,$wp_site_domain)
+  validate_string($install_dir, $install_url, $version, $db_name, $db_host,
+    $db_user, $db_password, $wp_owner, $wp_group, $wp_lang, $wp_plugin_dir,
+    $wp_additional_config, $wp_table_prefix, $wp_proxy_host, $wp_proxy_port,
+    $wp_site_domain, $install_data_url, $install_data_title,
+    $install_data_admin_user, $install_data_admin_password,
+    $install_data_admin_email
+  )
   validate_bool($wp_multisite, $wp_debug, $wp_debug_log, $wp_debug_display)
   validate_absolute_path($install_dir)
 
-  if $wp_config_content and ($wp_lang or $wp_debug or $wp_debug_log or $wp_debug_display or $wp_proxy_host or $wp_proxy_port or $wp_multisite or $wp_site_domain) {
+  if $wp_config_content and ($wp_lang or $wp_debug or $wp_debug_log or
+    $wp_debug_display or $wp_proxy_host or $wp_proxy_port or
+    $wp_multisite or $wp_site_domain
+  ) {
     warning('When $wp_config_content is set, the following parameters are ignored: $wp_table_prefix, $wp_lang, $wp_debug, $wp_debug_log, $wp_debug_display, $wp_plugin_dir, $wp_proxy_host, $wp_proxy_port, $wp_multisite, $wp_site_domain, $wp_additional_config')
   }
 
@@ -39,6 +53,18 @@ define wordpress::instance::app (
 
   if $wp_debug_display and ! $wp_debug {
     fail('wordpress class requires `wp_debug` parameter to be true, when `wp_debug_display` is true')
+  }
+  
+  $install_requested = pick_default($install_data_url, $install_data_title,
+    $install_data_admin_user, $install_data_admin_password, $install_data_admin_email
+  )
+  if $install_requested != undef and ($install_data_url == undef or
+    $install_data_title == undef or $install_data_admin_user == undef or
+    $install_data_admin_password == undef or $install_data_admin_email == undef
+  ) {
+    fail('You must provide the five parameters to successfully install WordPress: url, title, admin user, admin password and admin email')
+  } else {
+    include wordpress::wpcli
   }
 
   ## Resource defaults
@@ -62,6 +88,13 @@ define wordpress::instance::app (
     command => "mkdir -p ${install_dir}",
     unless  => "test -d ${install_dir}",
     before  => Exec["Download wordpress ${install_url}/${filename}.tar.gz to ${install_dir}"],
+  }
+  # Target folder must be writable to download and extract tar
+  -> file { $install_dir:
+    ensure  => directory,
+    owner   => $wp_owner,
+    group   => $wp_group,
+    mode    => '0755',
   }
 
   ## Download and extract
@@ -143,4 +176,29 @@ define wordpress::instance::app (
       order   => '20',
     }
   }
+
+  ## Install WordPress
+  #
+  $install_flags = [
+    "--path=\"${install_dir}\"",
+    "--url=\"${install_data_url}\"",
+    "--title=\"${install_data_title}\"",
+    "--admin_user=\"${install_data_admin_user}\"",
+    "--admin_password=\"${install_data_admin_password}\"",
+    "--admin_email=\"${install_data_admin_email}\"",
+  ]
+  $cmd_options = $install_flags.join(' ')
+  if $install_requested {
+    exec { "wp core install ${cmd_options}":
+      unless  => "wp core is-installed --path=${install_dir}",
+      user    => $wp_owner,
+      group   => $wp_group,
+      require => [
+        Class['wordpress::wpcli'],
+        Concat::Fragment["${install_dir}/wp-config.php body"],
+        Concat["${install_dir}/wp-config.php"],
+      ],
+    }
+  }
+
 }

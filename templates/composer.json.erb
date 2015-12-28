@@ -1,0 +1,24 @@
+{
+  "name": "puppet/wordpress-site",
+  "description": "Provision of WordPress addons with Puppet through composer",
+  "repositories":[
+    {
+      "type":"composer",
+      "url":"http://wpackagist.org"
+    }
+  ],
+  "require": {
+<%
+  last_pkg = @plugins.keys.last
+  @plugins.each_pair do |slug, settings|
+-%>
+    "wpackagist-plugin/<%= slug %>": "<%= settings.has_key?('version') ? settings['version'] : '*' %>"<%= slug == last_pkg ? '' : ',' %>
+<% end -%>
+<%
+  last_pkg = @themes.keys.last
+  @themes.each_pair do |slug, settings|
+-%>
+    "wpackagist-theme/<%= slug %>": "<%= settings.has_key?('version') ? settings['version'] : '*' %>"<%= slug == last_pkg ? '' : ',' %>
+<% end -%>
+  }
+}
