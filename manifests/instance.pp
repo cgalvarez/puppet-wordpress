@@ -78,6 +78,7 @@ define wordpress::instance (
   $version                      = undef,
   $create_db                    = true,
   $create_db_user               = true,
+  $create_db_test               = false,
   $db_host                      = 'localhost',
   $db_password                  = 'password',
   $wp_owner                     = 'root',
@@ -163,6 +164,7 @@ define wordpress::instance (
   wordpress::instance::db { "${db_host}/${db_name}":
     create_db      => $create_db,
     create_db_user => $create_db_user,
+    create_db_test => $create_db_test,
     db_name        => $db_name,
     db_host        => $db_host,
     db_user        => $db_user,
