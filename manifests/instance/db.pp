@@ -18,8 +18,10 @@ define wordpress::instance::db (
     }
   }
   if $create_db_user {
-    mysql_user { "${db_user}@${db_host}":
-      password_hash => mysql_password($db_password),
+    if !defined(Mysql_user["${db_user}@${db_host}"]) {
+      mysql_user { "${db_user}@${db_host}":
+        password_hash => mysql_password($db_password),
+      }
     }
     mysql_grant { "${db_user}@${db_host}/${db_name}.*":
       table      => "${db_name}.*",
